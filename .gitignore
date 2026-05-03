@@ -2,3 +2,4 @@ node_modules
 metrics.sqlite
 .venv/
 __pycache__/
+.env
