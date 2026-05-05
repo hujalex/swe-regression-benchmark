@@ -13,7 +13,7 @@ from pydantic_ai import Agent
 from . import metrics, tools
 from .models import Deps, RunResult
 
-MODEL_ID = "openai:gpt-5.5"
+MODEL_ID = "openai:gpt-4o-mini"
 
 SYSTEM_PROMPT = (
     "You are a coding agent working in an Express + Prisma + JWT TypeScript project "

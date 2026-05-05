@@ -59,12 +59,12 @@ docker exec dev-container bash -c "cd /workspace && npm test"
 
 # run a Verifiers eval (auto-starts container, installs env package on first run)
 ./run_eval.sh                          # all tasks, gpt-5.5
-MODEL=gpt-5.5 NUM_EXAMPLES=2 ./run_eval.sh
+MODEL=gpt- NUM_EXAMPLES=2 ./run_eval.sh
 # extra args pass through to vf-eval, e.g. -v for verbose
 
 # direct vf-eval invocation (what the script wraps)
 ./venv/bin/vf-eval code_agent -p environments \
-    -m gpt-5.5 -k OPENAI_API_KEY -b https://api.openai.com/v1 \
+    -m gpt-4o-mini -k OPENAI_API_KEY -b https://api.openai.com/v1 \
     -n 5 -r 1 -c 1
 
 # inspect metrics
