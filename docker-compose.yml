@@ -3,6 +3,8 @@ services:
     image: node:20
     container_name: dev-container
     working_dir: /workspace
+    environment:
+      DATABASE_URL: file:./dev.db
     volumes:
-      - ./:/workspace
+      - ./app:/workspace
     command: tail -f /dev/null

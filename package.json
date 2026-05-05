@@ -1,8 +1,0 @@
-{
-  "scripts": {
-    "test" : "vitest"
-  },
-  "dependencies": {
-    "vitest": "^4.1.5"
-  }
-}

@@ -13,14 +13,14 @@ from pydantic_ai import Agent
 from . import metrics, tools
 from .models import Deps, RunResult
 
-MODEL_ID = "openai:gpt-4o"
+MODEL_ID = "openai:gpt-5.5"
 
 SYSTEM_PROMPT = (
-    "You are a coding agent working in a TypeScript project mounted at /workspace. "
+    "You are a coding agent working in an Express + Prisma + JWT TypeScript project "
+    "mounted at /workspace. The test runner is jest (run via `npm test`). "
     "Use list_files and read_file to understand the code, write_file to make changes, "
-    "then run_tests (vitest). If tests fail, read the output, adjust your changes, and "
-    "retry — but stop after 3 test runs. When tests pass, call commit_result with a "
-    "concise message describing the fix. "
+    "then run_tests. When tests pass, call commit_result with a concise "
+    "message. Do not delete tests, do not gate logic on NODE_ENV==='test', "
     "Always return a RunResult with files_changed, tests_passed, the commit_sha "
     "returned by commit_result (empty string if you did not commit), a one-line summary, "
     "and any errors encountered."
@@ -35,13 +35,26 @@ agent: Agent[Deps, RunResult] = Agent(
 tools.register(agent)
 
 
+CONTAINER = "dev-container"
+WORKSPACE = "/workspace"
+
+
 def _host_sha() -> str:
-    return subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
+    proc = subprocess.run(
+        ["docker", "exec", CONTAINER, "bash", "-c", f"cd {WORKSPACE} && git rev-parse HEAD"],
+        capture_output=True,
+        text=True,
+    )
+    return proc.stdout.strip() if proc.returncode == 0 else ""
 
 
 def _reset_workspace() -> None:
-    subprocess.run(["git", "checkout", "."], check=False, capture_output=True)
-    subprocess.run(["git", "clean", "-fd"], check=False, capture_output=True)
+    subprocess.run(
+        ["docker", "exec", CONTAINER, "bash", "-c",
+         f"cd {WORKSPACE} && git checkout -- . && git clean -fd"],
+        capture_output=True,
+        text=True,
+    )
 
 
 async def run(task: str) -> RunResult | None:
