@@ -36,28 +36,42 @@ def _docker_exec(shell_cmd: str, *, stdin: str | None = None) -> str:
     )
 
 
+def _resolve(path: str) -> str:
+    """Resolve a workspace-relative or already-absolute path to an absolute one.
+
+    The model is inconsistent: `list_files` previously returned absolute
+    `/workspace/...` paths, so the model would feed those right back into
+    `read_file` / `write_file`, producing `/workspace//workspace/...` and
+    silent ENOENT failures. Accept either form.
+    """
+    if path.startswith(WORKSPACE + "/") or path == WORKSPACE:
+        return path
+    return f"{WORKSPACE}/{path.lstrip('/')}"
+
+
 def list_files(glob: str = "*") -> str:
     """List files in the workspace matching a path glob (e.g. 'lib/*.ts').
 
-    Skips node_modules and .git.
+    Skips node_modules and .git. Paths are returned **relative** to the
+    workspace root so they can be fed straight back into read_file / write_file.
     """
     pattern = shlex.quote(f"{WORKSPACE}/{glob}")
     cmd = (
         f"find {WORKSPACE} -type d \\( -name node_modules -o -name .git \\) -prune "
-        f"-o -type f -path {pattern} -print"
+        f"-o -type f -path {pattern} -print | sed 's|^{WORKSPACE}/||'"
     )
     return _docker_exec(cmd)
 
 
 def read_file(path: str) -> str:
     """Read a file from the workspace and return its contents."""
-    full = f"{WORKSPACE}/{path}"
+    full = _resolve(path)
     return _docker_exec(f"cat {shlex.quote(full)}")
 
 
 def write_file(path: str, content: str) -> str:
     """Overwrite a workspace file with the given content. Creates parent dirs."""
-    full = f"{WORKSPACE}/{path}"
+    full = _resolve(path)
     out = _docker_exec(
         f"mkdir -p \"$(dirname {shlex.quote(full)})\" && tee {shlex.quote(full)} > /dev/null",
         stdin=content,
