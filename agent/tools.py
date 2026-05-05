@@ -85,21 +85,27 @@ def register(agent) -> None:
 
     @agent.tool
     async def run_tests(ctx: RunContext[Deps]) -> str:
-        """Run the vitest suite once (no watch) and return the output."""
+        """Run the jest suite once and return the output."""
         return _format(
-            _docker_exec(ctx, f"cd {ctx.deps.workspace} && npm test --silent -- --run")
+            _docker_exec(ctx, f"cd {ctx.deps.workspace} && npm test --silent")
         )
 
     @agent.tool
     async def commit_result(ctx: RunContext[Deps], message: str) -> str:
-        """Stage all changes and commit on the host. Returns the new SHA."""
-        subprocess.run(["git", "add", "-A"], check=True, capture_output=True)
-        commit = subprocess.run(
-            ["git", "commit", "-m", message],
-            capture_output=True,
-            text=True,
+        """Stage all changes and commit on a throwaway per-run branch.
+
+        Commits never advance the baseline branch, so the rollout reset to
+        `benchmark-base` always restores a clean broken state.
+        """
+        ws = ctx.deps.workspace
+        msg = shlex.quote(message)
+        branch = f"agent-run-{ctx.deps.run_id}" if hasattr(ctx.deps, "run_id") else "agent-run"
+        commit = _docker_exec(
+            ctx,
+            f"cd {ws} && git checkout -B {shlex.quote(branch)} && git add -A "
+            f"&& git -c user.email=agent@local -c user.name=agent commit -m {msg} "
+            f"&& git rev-parse HEAD && git checkout - --quiet",
         )
         if commit.returncode != 0:
             return _truncate(f"commit failed: {commit.stdout}{commit.stderr}")
-        sha = subprocess.check_output(["git", "rev-parse", "HEAD"], text=True).strip()
-        return sha
+        return commit.stdout.strip().splitlines()[-1]

@@ -1,5 +1,8 @@
 node_modules
 metrics.sqlite
+metrics/
 .venv/
 __pycache__/
 .env
+venv
+app/
