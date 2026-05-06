@@ -9,6 +9,7 @@ import uuid
 from pathlib import Path
 
 from .models import RunResult
+from output_md import append_run as _append_md
 
 DB_PATH = Path(__file__).resolve().parent.parent / "metrics.sqlite"
 
@@ -61,9 +62,11 @@ def write(
     git_sha: str,
     outcome: str,
     result: RunResult | None,
+    task: str = "",
 ) -> str:
     """Write one row. Returns the run_id."""
     run_id = uuid.uuid4().hex
+    ts = time.time()
     files = json.dumps(result.files_changed if result else [])
     summary = result.summary if result else ""
     tests_passed = int(bool(result.tests_passed)) if result else 0
@@ -73,7 +76,7 @@ def write(
             "INSERT INTO runs VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)",
             (
                 run_id,
-                time.time(),
+                ts,
                 provider,
                 model,
                 tokens_in,
@@ -87,4 +90,5 @@ def write(
                 summary,
             ),
         )
+    _append_md(run_id=run_id, ts=ts, task=task or summary, outcome=outcome, model=model)
     return run_id

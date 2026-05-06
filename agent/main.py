@@ -90,6 +90,7 @@ async def run(task: str) -> RunResult | None:
         git_sha=post_sha if post_sha != pre_sha else "",
         outcome=outcome,
         result=result,
+        task=task,
     )
     return result
 

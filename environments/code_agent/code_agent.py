@@ -30,6 +30,7 @@ if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
 
 from env import tools as env_tools  # noqa: E402
+from output_md import append_run as _append_md  # noqa: E402
 
 CONTAINER = os.environ.get("SWE_CONTAINER", "dev-container")
 WORKSPACE = os.environ.get("SWE_WORKSPACE", "/workspace")
@@ -273,6 +274,7 @@ def _persist_diff(run_id: str, diff: str) -> tuple[str, int]:
 def _write_metrics_row(prompt, score: dict[str, Any]) -> str:
     _ensure_metrics_db()
     run_id = uuid.uuid4().hex
+    ts = int(time.time())
     diff_path, diff_bytes = _persist_diff(run_id, score.get("diff", ""))
     prompt_str = prompt if isinstance(prompt, str) else json.dumps(prompt)[:4000]
     with sqlite3.connect(_METRICS_PATH) as conn:
@@ -280,7 +282,7 @@ def _write_metrics_row(prompt, score: dict[str, Any]) -> str:
             "INSERT INTO runs VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 run_id,
-                int(time.time()),
+                ts,
                 prompt_str,
                 score["passed"],
                 score["failed"],
@@ -297,6 +299,19 @@ def _write_metrics_row(prompt, score: dict[str, Any]) -> str:
                 diff_bytes,
             ),
         )
+    task_text = prompt_str[:200] if isinstance(prompt_str, str) else ""
+    _append_md(
+        run_id=run_id,
+        ts=ts,
+        task=task_text,
+        reward=score["reward"],
+        visible_passed=score["passed"],
+        visible_total=score["total"],
+        held_out_passed=score.get("held_out_passed", 0),
+        held_out_total=score.get("held_out_total", 0),
+        shallow_fix=bool(score.get("shallow_fix", False)),
+        lint_ok=bool(score["lint_ok"]),
+    )
     return run_id
 
 
