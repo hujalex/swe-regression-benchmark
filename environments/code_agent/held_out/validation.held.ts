@@ -22,6 +22,21 @@ describe('held-out: POST /register validation (additional cases)', () => {
     expect(res.status).toBe(400);
   });
 
+  it('rejects null email', async () => {
+    const res = await request(app).post('/register').send({ email: null, password: 'secret' });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects null password', async () => {
+    const res = await request(app).post('/register').send({ email: 'a@b.com', password: null });
+    expect(res.status).toBe(400);
+  });
+
+  it('rejects whitespace-only email', async () => {
+    const res = await request(app).post('/register').send({ email: '   ', password: 'secret' });
+    expect(res.status).toBe(400);
+  });
+
   it('accepts a valid body (positive control)', async () => {
     const res = await request(app)
       .post('/register')

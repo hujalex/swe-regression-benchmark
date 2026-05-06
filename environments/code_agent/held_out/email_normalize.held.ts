@@ -27,6 +27,18 @@ describe('held-out: email canonicalization (general)', () => {
     expect(dup.status).toBe(409);
   });
 
+  it('ALL-CAPS login works after mixed-case register (catches lowercase-only-on-register)', async () => {
+    await request(app)
+      .post('/register')
+      .send({ email: 'Alice@Example.com', password: 'secret123' })
+      .expect(201);
+
+    const res = await request(app)
+      .post('/login')
+      .send({ email: 'ALICE@EXAMPLE.COM', password: 'secret123' });
+    expect(res.status).toBe(200);
+  });
+
   it('stored email column is lowercase and trimmed', async () => {
     await request(app)
       .post('/register')

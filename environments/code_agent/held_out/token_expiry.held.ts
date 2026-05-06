@@ -23,6 +23,42 @@ describe('held-out: JWT expiry (general)', () => {
     expect(decoded.exp!).toBeLessThanOrEqual(after + 3610);
   });
 
+  it('exp > iat (token expires in the future, not the past)', async () => {
+    await request(app)
+      .post('/register')
+      .send({ email: 'exp-iat@example.com', password: 'secret123' })
+      .expect(201);
+    const res = await request(app)
+      .post('/login')
+      .send({ email: 'exp-iat@example.com', password: 'secret123' })
+      .expect(200);
+    const decoded = jwt.decode(res.body.token) as { exp?: number; iat?: number };
+    expect(decoded.exp!).toBeGreaterThan(decoded.iat!);
+    // exp - iat must be approximately 3600, not a hardcoded epoch literal.
+    expect(decoded.exp! - decoded.iat!).toBeGreaterThanOrEqual(3590);
+    expect(decoded.exp! - decoded.iat!).toBeLessThanOrEqual(3610);
+  });
+
+  it('two tokens issued ~2s apart have different iat values (not frozen clock)', async () => {
+    await request(app)
+      .post('/register')
+      .send({ email: 'exp-clock@example.com', password: 'secret123' })
+      .expect(201);
+    const res1 = await request(app)
+      .post('/login')
+      .send({ email: 'exp-clock@example.com', password: 'secret123' })
+      .expect(200);
+    await new Promise(r => setTimeout(r, 1100));
+    const res2 = await request(app)
+      .post('/login')
+      .send({ email: 'exp-clock@example.com', password: 'secret123' })
+      .expect(200);
+    const d1 = jwt.decode(res1.body.token) as { iat?: number };
+    const d2 = jwt.decode(res2.body.token) as { iat?: number };
+    // iat must advance with real time, not be a hardcoded 0 or constant.
+    expect(d2.iat!).toBeGreaterThan(d1.iat!);
+  });
+
   it('a fresh token still works on /me', async () => {
     await request(app)
       .post('/register')

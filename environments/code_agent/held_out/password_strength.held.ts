@@ -25,6 +25,20 @@ describe('held-out: password strength (general)', () => {
     expect(res.status).toBe(201);
   });
 
+  it('accepts all-digit password of length >= 8 (digit rule is OR-of-chars, not specific char)', async () => {
+    const res = await request(app)
+      .post('/register')
+      .send({ email: 'alldigit@x.com', password: '12345678' });
+    expect(res.status).toBe(201);
+  });
+
+  it('accepts password whose only digit is "2" (catches password.includes("1") shallow fix)', async () => {
+    const res = await request(app)
+      .post('/register')
+      .send({ email: 'digit2@x.com', password: 'abcdefg2' });
+    expect(res.status).toBe(201);
+  });
+
   it('legacy weak-password account can still login (rule is at registration only)', async () => {
     // Seed a user directly with a weak password — bypasses /register so the
     // strength rule cannot reject it. Login must NOT reject this user.

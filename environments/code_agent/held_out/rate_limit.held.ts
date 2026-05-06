@@ -14,6 +14,17 @@ describe('held-out: POST /login rate limit (general behavior)', () => {
     }
   });
 
+  it('first 5 attempts are NOT 429 (limiter does not trigger too early)', async () => {
+    const creds = { email: 'rl-early@example.com', password: 'wrong' };
+    for (let i = 0; i < 5; i++) {
+      const res = await request(app).post('/login').send(creds);
+      expect(res.status).not.toBe(429);
+    }
+    // 6th must be 429
+    const sixth = await request(app).post('/login').send(creds);
+    expect(sixth.status).toBe(429);
+  });
+
   it('limiter response carries an error body, not generic 401', async () => {
     const creds = { email: 'rl-body@example.com', password: 'wrong' };
     let limited;
@@ -26,5 +37,18 @@ describe('held-out: POST /login rate limit (general behavior)', () => {
     }
     expect(limited).toBeDefined();
     expect(limited!.body).toHaveProperty('error');
+  });
+
+  it('rate limit is per-client: a different email+IP does not inherit the counter', async () => {
+    // Exhaust the limit for one identity
+    const credsA = { email: 'rl-a@example.com', password: 'wrong' };
+    for (let i = 0; i < 6; i++) {
+      await request(app).post('/login').send(credsA);
+    }
+    // A different email on the same "IP" still gets fresh attempts (or its own bucket).
+    // The point: the limiter must not be a global counter that blocks everyone.
+    const credsB = { email: 'rl-b@example.com', password: 'wrong' };
+    const first = await request(app).post('/login').send(credsB);
+    expect(first.status).not.toBe(429);
   });
 });

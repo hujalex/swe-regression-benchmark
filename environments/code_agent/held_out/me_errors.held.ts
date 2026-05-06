@@ -25,6 +25,24 @@ describe('held-out: /me structured error envelope (general)', () => {
     expect(['missing_token', 'invalid_token']).toContain(res.body.error?.code);
   });
 
+  it('wrong-scheme error response includes a structured envelope (not just a status)', async () => {
+    const res = await request(app).get('/me').set('Authorization', 'Token abc');
+    expect(res.status).toBe(401);
+    expect(res.body.error).toBeDefined();
+    expect(typeof res.body.error.code).toBe('string');
+    expect(typeof res.body.error.message).toBe('string');
+    expect(res.body.error.message.length).toBeGreaterThan(0);
+  });
+
+  it('missing-header error has non-empty code and message strings', async () => {
+    const res = await request(app).get('/me');
+    expect(res.status).toBe(401);
+    expect(typeof res.body.error?.code).toBe('string');
+    expect(typeof res.body.error?.message).toBe('string');
+    expect(res.body.error.code.length).toBeGreaterThan(0);
+    expect(res.body.error.message.length).toBeGreaterThan(0);
+  });
+
   it('valid token still returns 200 with id+email (positive control)', async () => {
     await request(app)
       .post('/register')
