@@ -64,7 +64,7 @@ MODEL=gpt- NUM_EXAMPLES=2 ./run_eval.sh
 
 # direct vf-eval invocation (what the script wraps)
 ./venv/bin/vf-eval code_agent -p environments \
-    -m gpt-4o-mini -k OPENAI_API_KEY -b https://api.openai.com/v1 \
+    -m gpt-5.5 -k OPENAI_API_KEY -b https://api.openai.com/v1 \
     -n 5 -r 1 -c 1
 
 # inspect metrics

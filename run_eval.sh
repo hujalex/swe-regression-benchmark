@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(dirname "$0")"
 
-MODEL="${MODEL:-gpt-4o-mini}"
+MODEL="${MODEL:-gpt-5.5}"
 NUM_EXAMPLES="${NUM_EXAMPLES:-5}"
 ROLLOUTS="${ROLLOUTS:-1}"
 CONCURRENCY="${CONCURRENCY:-1}"
